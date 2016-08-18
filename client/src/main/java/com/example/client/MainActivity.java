@@ -19,40 +19,36 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
-   public BluetoothAdapter mBluetoothAdapter;
+    public BluetoothAdapter mBluetoothAdapter;
     List<String> mArrayAdapter = new ArrayList<String>();
     List<String> mArrayAdapter1 = new ArrayList<String>();
     List<String> mArrayAdapter2 = new ArrayList<String>();
     List<String> mArrayAdapter3 = new ArrayList<String>();
-    ListView list,list1;
+    ListView list, list1;
 
-    Handler handler = new Handler(){
+    Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
                 case 0:
                     ArrayAdapter arrayAdapter1 = new ArrayAdapter(MainActivity.this,
-                            android.R.layout.simple_expandable_list_item_1,mArrayAdapter1);
+                            android.R.layout.simple_expandable_list_item_1, mArrayAdapter1);
                     arrayAdapter1.notifyDataSetChanged();
                     list1.setAdapter(arrayAdapter1);
-                    list1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                        @Override
-                        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                            BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(mArrayAdapter2.get(position));
-                            new ConnectThread(bluetoothDevice).start();
-                            Log.i("aaa","==========="+mArrayAdapter2.get(position));
-                            Log.i("aaa","点击item");
-                        }
-                    });
+
                     break;
             }
+
+
         }
     };
 
@@ -65,11 +61,11 @@ public class MainActivity extends AppCompatActivity {
         list1 = (ListView) findViewById(R.id.list1);
         // Register the BroadcastReceiver
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-        registerReceiver(mReceiver,filter);
+        registerReceiver(mReceiver, filter);
 //1.
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();//代表自己设备的蓝牙适配器
         if (mBluetoothAdapter == null) {//判断支不支持蓝牙设备
-            Toast.makeText(this,"此设备不支持蓝牙",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "此设备不支持蓝牙", Toast.LENGTH_SHORT).show();
             finish();
         }
 //2.开启蓝牙
@@ -88,28 +84,37 @@ public class MainActivity extends AppCompatActivity {
                 // Add the name and address to an array adapter to show in a ListView
                 mArrayAdapter.add(device.getName() + "\n" + device.getAddress());
                 mArrayAdapter3.add(device.getAddress());
-                Log.i("aaa","已配对的设备"+ device.getName());
+                Log.i("aaa", "已配对的设备" + device.getName());
             }
 
         } else {
-            Log.i("aaa","搜索蓝牙");
+            Log.i("aaa", "搜索蓝牙");
             mBluetoothAdapter.startDiscovery();//搜索蓝牙
         }
-        ArrayAdapter arrayAdapter = new ArrayAdapter(this,android.R.layout.simple_expandable_list_item_1,mArrayAdapter);
+        ArrayAdapter arrayAdapter = new ArrayAdapter(this, android.R.layout.simple_expandable_list_item_1, mArrayAdapter);
         list.setAdapter(arrayAdapter);
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(mArrayAdapter3.get(position));
-                Log.i("aaa",mArrayAdapter3.get(position));
+                Log.i("aaa", mArrayAdapter3.get(position));
                 new ConnectThread(bluetoothDevice).start();
-                Log.i("aaa","点击item1");
+                Log.i("aaa", "点击item1");
             }
         });
+
+        list1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                BluetoothDevice bluetoothDevice = mBluetoothAdapter.getRemoteDevice(mArrayAdapter2.get(position));
+
+                new ConnectThread(bluetoothDevice).start();
+                Log.i("aaa", "===========" + mArrayAdapter2.get(position));
+                Log.i("aaa", "点击item");
+            }
+        });
+
     }
-
-
-
 
 
     private class ConnectThread extends Thread {
@@ -137,22 +142,42 @@ public class MainActivity extends AppCompatActivity {
 
             try {
                 // Connect the device through the socket. This will block
-                try {
-                    sleep(1000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
                 // until it succeeds or throws an exception
                 Log.i("aaa", "开始连接设备");
                 mmSocket.connect();
-                Log.i("aaa", "连接了");
+                try {
+//                    必须延迟一下
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                if (mmSocket != null) {
+                    byte[] buffer = new byte[1024];  // buffer store for the stream
+                    int bytes;
+                    InputStream mmInStream = mmSocket.getInputStream();
+//                    bytes = mmInStream.read();//没有执行下面
+                    bytes = mmInStream.read(buffer);
+                    if (bytes != 0) {
+                        String value = new String(buffer);
+
+                        System.out.println(value.trim().toString());
+                        Log.i("aaa", value.trim().toString() + "a");
+                    } else {
+                        Log.i("aaa", "无数据");
+                    }
+
+                } else {
+                    Log.i("aaa", "4");
+                }
+//                new ConnectedThread(mmSocket).start();
             } catch (IOException connectException) {
                 // Unable to connect; close the socket and get out
-                try {
-                    Log.i("aaa", "连接失败"+connectException.getMessage());
-                    mmSocket.close();
-                } catch (IOException closeException) {
-                }
+//                try {
+//                    Log.i("aaa", "连接失败"+connectException.getMessage());
+//                    mmSocket.close();
+//                } catch (IOException closeException) {
+//                }
                 return;
             }
 
@@ -173,7 +198,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     //扫描设备
     // Create a BroadcastReceiver for ACTION_FOUND
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
@@ -187,16 +211,75 @@ public class MainActivity extends AppCompatActivity {
                 mArrayAdapter2.add(device.getAddress());
                 Message message = new Message();
                 handler.sendEmptyMessage(0);
-                    if (device.getName()!=null) {
-                        if (device.getName().equals("OPPO R9tmduan")) {
-                            Log.i("aaa","搜索到");
-                        }
-                    }
-                }
+//                if (device.getName() != null) {
+//                    if (device.getName().equals("OPPO R9tmduan")) {
+//                        Log.i("aaa", "搜索到");
+//                    }
+//                }
             }
-
+        }
 
 
     };
 
+
+    //    发送消息
+    private class ConnectedThread extends Thread {
+        private final BluetoothSocket mmSocket;
+        private final InputStream mmInStream;
+        private final OutputStream mmOutStream;
+
+        public ConnectedThread(BluetoothSocket socket) {
+            mmSocket = socket;
+            InputStream tmpIn = null;
+            OutputStream tmpOut = null;
+
+            // Get the input and output streams, using temp objects because
+            // member streams are final
+            try {
+                tmpIn = socket.getInputStream();
+                tmpOut = socket.getOutputStream();
+            } catch (IOException e) {
+            }
+
+            mmInStream = tmpIn;
+            mmOutStream = tmpOut;
+        }
+
+        public void run() {
+            byte[] buffer = new byte[1024];  // buffer store for the stream
+            int bytes; // bytes returned from read()
+
+            // Keep listening to the InputStream until an exception occurs
+            while (true) {
+                try {
+//                bytes = mmInStream.read(buffer);//没有执行下面
+                    bytes = mmInStream.read();//没有执行下面
+
+                    if (bytes != 0) {
+                        Log.i("aaa", buffer.toString() + "a");
+                    }
+                } catch (IOException e) {
+                    Log.i("aaa", e.getMessage());
+                    break;
+                }
+            }
+        }
+
+        /* Call this from the main activity to send data to the remote device */
+        public void write(byte[] bytes) {
+            try {
+                mmOutStream.write(bytes);
+            } catch (IOException e) {
+            }
+        }
+
+        /* Call this from the main activity to shutdown the connection */
+        public void cancel() {
+            try {
+                mmSocket.close();
+            } catch (IOException e) {
+            }
+        }
+    }
 }
