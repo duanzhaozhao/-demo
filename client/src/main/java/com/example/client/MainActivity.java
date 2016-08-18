@@ -153,19 +153,20 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 if (mmSocket != null) {
-                    byte[] buffer = new byte[1024];  // buffer store for the stream
-                    int bytes;
+                    byte[] buffer = new byte[8192];  // buffer store for the stream
+                    int bytes = 0;
                     InputStream mmInStream = mmSocket.getInputStream();
-//                    bytes = mmInStream.read();//没有执行下面
-                    bytes = mmInStream.read(buffer);
-                    if (bytes != 0) {
-                        String value = new String(buffer);
+                 while(bytes < 8192)//循环读
+                    {
+                        bytes += mmInStream.read(buffer,bytes,8192 - bytes);
 
-                        System.out.println(value.trim().toString());
-                        Log.i("aaa", value.trim().toString() + "a");
-                    } else {
-                        Log.i("aaa", "无数据");
+                        Log.i("aaa", String.valueOf(bytes));
+                        String value = new String(buffer);
+                        Log.i("aaa", value.trim().toString() + "b");
                     }
+
+
+
 
                 } else {
                     Log.i("aaa", "4");

@@ -20,6 +20,7 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -137,10 +138,25 @@ public class MainActivity extends AppCompatActivity {
 
                         Log.i("aaa", "发送数据");
                         OutputStream out = socket.getOutputStream();
-                        byte[] by;
-                        String a = "123456";
+                        byte[] by ;
+                        StringBuilder s = new StringBuilder();
+                        for(int i = 0;i<900;i++) {
+                            s.append("a");
+                        }
+                      String a=  s.toString();
+                       Log.i("aaa",s.toString());
+                       Log.i("aaa1", String.valueOf(s.length()));
                         by = a.getBytes();
-                        out.write(by);
+
+                        by = new byte[8192];
+                        for(int i=0; i<8192;i+=900)
+                        {//OutputStream一次不能写太多 分几次发送
+                            int b = ((i+900) < 8192) ? 900: 8192 - i;
+                            out.write(by,i,b);
+                            out.flush();
+                            Log.i("aaa", String.valueOf(by.length));
+                        }
+//                         out.write(by);
                         Log.i("aaa", "发送数据1");
 //                        mmServerSocket.close();
 //                        cancel();
